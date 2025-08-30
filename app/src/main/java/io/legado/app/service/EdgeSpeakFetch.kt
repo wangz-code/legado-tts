@@ -31,7 +31,7 @@ class EdgeSpeakFetch {
         private const val TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
         private const val BASE_URL = "speech.platform.bing.com"
         private const val WSS_PATH = "/consumer/speech/synthesize/readaloud/edge/v1"
-        private const val SEC_MS_GEC_VERSION = "1-130.0.2849.68"
+        private const val SEC_MS_GEC_VERSION = "1-140.0.3485.14"
         private const val DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural"
 
         // DRM 相关参数
