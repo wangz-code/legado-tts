@@ -23,5 +23,4 @@ Legado is a free and open source novel reader for Android.
 - 跟随rany2/edge-tts EdgeVersion 140.0.3485.14
 ![detail.png](https://raw.githubusercontent.com/WangSunio/img/main/images/pre.png)
 
-
 ### happy every day 😄 😄
