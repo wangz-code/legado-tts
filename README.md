@@ -11,7 +11,10 @@ Legado is a free and open source novel reader for Android.
 - app基于legado https://github.com/gedoor/legado
 - tts基于rany2/edge-tts https://github.com/rany2/edge-tts 
 - EdgeVersion 140.0.3485.14
-
+### 个人测试
+- 我已经用了快一个多月了, 偶尔会出现几个漏掉的句子, 其他的貌似一切正常, 不是自夸是真的非常好用! 有使用过的兄弟的也欢迎反馈遇到TTS问题
+- 缺点就是不能自定义语音,其实稍微改动也可以自定义,我也预留了接口, 我个人觉得除了"晓晓"之外, 其他的都非常机器人, 如果有豆包音色的话那更好了
+  
 ### 主要修改
 - 修改音频流的暂存方式 (写硬盘=>写内存)
 - 原作者来是把音频缓存硬盘上会频繁执行写入和删除(有多少段落就写多少次),
