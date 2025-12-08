@@ -1,6 +1,7 @@
 package io.legado.app.ui.association
 
 import android.app.Application
+import androidx.core.net.toUri
 import androidx.lifecycle.MutableLiveData
 import io.legado.app.R
 import io.legado.app.base.BaseViewModel
@@ -19,6 +20,9 @@ import io.legado.app.utils.fromJsonObject
 import io.legado.app.utils.isAbsUrl
 import io.legado.app.utils.isJsonArray
 import io.legado.app.utils.isJsonObject
+import io.legado.app.utils.isUri
+import io.legado.app.utils.readText
+import splitties.init.appCtx
 
 class ImportTxtTocRuleViewModel(app: Application) : BaseViewModel(app) {
 
@@ -86,9 +90,15 @@ class ImportTxtTocRuleViewModel(app: Application) : BaseViewModel(app) {
                 .let { items ->
                     allSources.addAll(items)
                 }
+
             text.isAbsUrl() -> {
                 importSourceUrl(text)
             }
+
+            text.isUri() -> {
+                importSourceAwait(text.toUri().readText(appCtx))
+            }
+
             else -> throw NoStackTraceException(context.getString(R.string.wrong_format))
         }
     }

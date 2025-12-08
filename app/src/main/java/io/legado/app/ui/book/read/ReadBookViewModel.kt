@@ -214,7 +214,7 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
                         if (oldBook.bookUrl == book.bookUrl) {
                             appDb.bookDao.update(book)
                         } else {
-                            appDb.bookDao.insert(book)
+                            appDb.bookDao.replace(oldBook, book)
                             BookHelp.updateCacheFolder(oldBook, book)
                         }
                         appDb.bookChapterDao.delByBook(oldBook.bookUrl)
@@ -328,7 +328,7 @@ class ReadBookViewModel(application: Application) : BaseViewModel(application) {
     }
 
     fun openChapter(index: Int, durChapterPos: Int = 0, success: (() -> Unit)? = null) {
-        ReadBook.openChapter(index, durChapterPos, success)
+        ReadBook.openChapter(index, durChapterPos, success = success)
     }
 
     fun removeFromBookshelf(success: (() -> Unit)?) {

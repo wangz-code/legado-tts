@@ -29,6 +29,7 @@ import io.legado.app.ui.book.read.page.delegate.SimulationPageDelegate
 import io.legado.app.ui.book.read.page.delegate.SlidePageDelegate
 import io.legado.app.ui.book.read.page.entities.PageDirection
 import io.legado.app.ui.book.read.page.entities.TextChapter
+import io.legado.app.ui.book.read.page.entities.TextLine
 import io.legado.app.ui.book.read.page.entities.TextPage
 import io.legado.app.ui.book.read.page.entities.TextPos
 import io.legado.app.ui.book.read.page.entities.column.TextColumn
@@ -306,6 +307,8 @@ class ReadView(context: Context, attrs: AttributeSet) :
             invalidate()
         }
         pageDelegate?.onScroll()
+        val offset = touchY - lastY
+        touchY -= offset - offset.toInt()
     }
 
     /**
@@ -671,8 +674,8 @@ class ReadView(context: Context, attrs: AttributeSet) :
         return curPage.getCurVisiblePage()
     }
 
-    fun getCurPagePosition(): Int {
-        return curPage.getCurVisibleFirstLine()?.pagePosition ?: 0
+    fun getReadAloudPos(): Pair<Int, TextLine>? {
+        return curPage.getReadAloudPos()
     }
 
     fun invalidateTextPage() {

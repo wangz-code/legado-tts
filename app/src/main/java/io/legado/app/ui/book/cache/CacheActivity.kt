@@ -172,7 +172,7 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
         when (item.itemId) {
             R.id.menu_download,
             R.id.menu_download_after -> {
-                if (!CacheBook.isRun) {
+                if (!CacheBook.isRun) sureCacheBook {
                     adapter.getItems().forEach { book ->
                         CacheBook.start(
                             this@CacheActivity,
@@ -187,7 +187,7 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
             }
 
             R.id.menu_download_all -> {
-                if (!CacheBook.isRun) {
+                if (!CacheBook.isRun) sureCacheBook {
                     adapter.getItems().forEach { book ->
                         CacheBook.start(
                             this@CacheActivity,
@@ -300,6 +300,9 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
             notifyItemChanged(it)
         }
         observeEvent<String>(EventBus.UP_DOWNLOAD) {
+            notifyItemChanged(it)
+        }
+        observeEvent<String>(EventBus.UP_DOWNLOAD_STATE) {
             if (!CacheBook.isRun) {
                 menu?.findItem(R.id.menu_download)?.let { item ->
                     item.setIconCompat(R.drawable.ic_play_24dp)
@@ -313,7 +316,6 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
                 }
                 menu?.applyTint(this)
             }
-            notifyItemChanged(it)
         }
         observeEvent<Pair<Book, BookChapter>>(EventBus.SAVE_CONTENT) { (book, chapter) ->
             viewModel.cacheChapters[book.bookUrl]?.add(chapter.url)
@@ -552,6 +554,16 @@ class CacheActivity : VMBaseActivity<ActivityCacheBookBinding, CacheViewModel>()
                 AppConfig.exportCharset = alertBinding.editView.text?.toString() ?: "UTF-8"
             }
             cancelButton()
+        }
+    }
+
+    private fun sureCacheBook(action: () -> Unit) {
+        alert(R.string.draw) {
+            setMessage(R.string.sure_cache_book)
+            noButton()
+            yesButton {
+                action.invoke()
+            }
         }
     }
 
