@@ -31,12 +31,30 @@ class EdgeSpeakFetch {
         private const val TRUSTED_CLIENT_TOKEN = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
         private const val BASE_URL = "speech.platform.bing.com"
         private const val WSS_PATH = "/consumer/speech/synthesize/readaloud/edge/v1"
-        private const val SEC_MS_GEC_VERSION = "1-140.0.3485.14"
         private const val DEFAULT_VOICE = "zh-CN-XiaoxiaoNeural"
 
         // DRM 相关参数
         private const val WIN_EPOCH_SECONDS = 11644473600L
         private const val S_TO_NS = 1e9
+
+        private const val CHROMIUM_FULL_VERSION = "143.0.3650.75"
+        private var CHROMIUM_MAJOR_VERSION: String = CHROMIUM_FULL_VERSION.split(".", limit = 2)[0]
+        private const val SEC_MS_GEC_VERSION: String = "1-$CHROMIUM_FULL_VERSION"
+        // 基础请求头（对应Python的BASE_HEADERS）
+        val BASE_HEADERS = mapOf(
+            "User-Agent" to "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROMIUM_MAJOR_VERSION}.0.0.0 Safari/537.36 Edg/${CHROMIUM_MAJOR_VERSION}.0.0.0",
+            "Accept-Encoding" to "gzip, deflate, br, zstd",
+            "Accept-Language" to "en-US,en;q=0.9"
+        )
+
+        // WebSocket专属头（对应Python的WSS_HEADERS）
+        val WSS_HEADERS = mapOf(
+            "Pragma" to "no-cache",
+            "Cache-Control" to "no-cache",
+            "Origin" to "chrome-extension://jdiccldimpdaibmpdkjnbmckianbfold",
+            "Sec-WebSocket-Version" to "13",
+
+        )
 
         fun generateSecMsGec(clockSkewSeconds: Double): String {
             val now = Instant.now().epochSecond + clockSkewSeconds
@@ -110,7 +128,18 @@ class EdgeSpeakFetch {
         )
 
         val wsUrl = String.format("wss://%s%s?%s", BASE_URL, WSS_PATH, queryParams)
-        val request = Request.Builder().url(wsUrl).build()
+        val requestBuilder = Request.Builder().url(wsUrl)
+
+        // 3. 添加基础头
+        BASE_HEADERS.forEach { (key, value) ->
+            requestBuilder.header(key, value)
+        }
+        // 4. 添加WebSocket专属头
+        WSS_HEADERS.forEach { (key, value) ->
+            requestBuilder.header(key, value)
+        }
+        // 5. 构建最终请求
+        val request = requestBuilder.build()
 
         val listener = object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
