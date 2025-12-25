@@ -10,7 +10,7 @@ Legado is a free and open source novel reader for Android.
 ## legado-tts/阅读内置EdgeTTS 微软大声朗读
 - app基于legado https://github.com/gedoor/legado ✅
 - tts基于rany2/edge-tts https://github.com/rany2/edge-tts ✅
-- 豆包tts 基于 https://github.com/callmerio/doubao-tts  ❌(未开发,简单测试能用, 我对豆包有执念,提上日程)
+- 豆包tts 基于 https://github.com/callmerio/doubao-tts  ❌(未开发简单测试能用, 我对豆包有执念,提上日程)
 
 ### 为什么会有这个仓库? 
 - 我曾经提交过PR挂了几个星期也没人合并, So waht ever! 我=null, 我+GPT=无所不能
