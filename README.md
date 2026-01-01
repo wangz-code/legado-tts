@@ -10,7 +10,7 @@ Legado is a free and open source novel reader for Android.
 ## legado-tts/阅读内置EdgeTTS 微软大声朗读
 - app基于legado https://github.com/gedoor/legado ✅
 - Edgetts基于rany2/edge-tts https://github.com/rany2/edge-tts ✅
-- 豆包tts基于 https://github.com/callmerio/doubao-tts  ❌( 辣鸡豆包,调用三四次就被拦截, 格局都没有 猝)
+- 豆包tts基于 https://github.com/callmerio/doubao-tts  ✅( ~~辣鸡豆包,调用三四次就被拦截, 格局都没有 猝~~ 有格局但不多)
 
 ### 豆包TTS 测试
 豆包调用频繁极其容易被拦截等个20分钟左右就能恢复, 频繁调用会被拦截, 字数长一点不会拦截, 比如单次长内容约1000字每次,正常语速可以读个 7 分钟,  每次等个5分钟左右调用一次, 能用好多次, 经过手工测试了一两个小时没被拦截
