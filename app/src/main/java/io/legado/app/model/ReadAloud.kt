@@ -11,6 +11,7 @@ import io.legado.app.data.entities.HttpTTS
 import io.legado.app.help.config.AppConfig
 import io.legado.app.service.BaseReadAloudService
 import io.legado.app.service.HttpReadAloudService
+import io.legado.app.service.TTSDouBaoAloudService
 import io.legado.app.service.TTSReadAloudService
 import io.legado.app.service.TTSEdgeAloudService
 import io.legado.app.utils.LogUtils
@@ -32,6 +33,9 @@ object ReadAloud {
         }
         if (ttsEngine.contains("edgeinner")) {
             return TTSEdgeAloudService::class.java
+        }
+        if (ttsEngine.contains("doubao")) {
+            return  TTSDouBaoAloudService::class.java
         }
         if (StringUtils.isNumeric(ttsEngine)) {
             httpTTS = appDb.httpTTSDao.get(ttsEngine.toLong())

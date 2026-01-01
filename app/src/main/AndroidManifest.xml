@@ -485,6 +485,9 @@
             android:name=".service.TTSEdgeAloudService"
             android:foregroundServiceType="mediaPlayback" />
         <service
+            android:name=".service.TTSDouBaoAloudService"
+            android:foregroundServiceType="mediaPlayback" />
+        <service
             android:name=".service.AudioPlayService"
             android:foregroundServiceType="mediaPlayback" />
         <service

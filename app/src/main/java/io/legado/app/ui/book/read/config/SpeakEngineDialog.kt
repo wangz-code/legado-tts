@@ -1,11 +1,15 @@
 package io.legado.app.ui.book.read.config
 
+import android.app.AlertDialog
 import android.content.Context
 import android.os.Bundle
 import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import android.widget.RadioButton
+import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
@@ -137,7 +141,9 @@ class SpeakEngineDialog() : BaseDialogFragment(R.layout.dialog_recycler_view),
             }
 
         }
+
         viewModel.sysEngines.forEach { engine ->
+            System.out.println("engine.label:"+engine.label)
             adapter.addHeaderView {
                 ItemHttpTtsBinding.inflate(layoutInflater, recyclerView, false).apply {
                     sysTtsViews.add(cbName)
@@ -154,6 +160,58 @@ class SpeakEngineDialog() : BaseDialogFragment(R.layout.dialog_recycler_view),
                 }
             }
         }
+        adapter.addHeaderView {
+            ItemHttpTtsBinding.inflate(layoutInflater, recyclerView, false).apply {
+                sysTtsViews.add(cbName)
+                ivEdit.visible()
+                ivMenuDelete.gone()
+                labelSys.gone()
+
+
+                cbName.text = "豆包"
+                cbName.tag = "doubao"
+                cbName.isChecked = GSON.fromJsonObject<SelectItem<String>>(ttsEngine)
+                    .getOrNull()?.value == cbName.tag
+                cbName.setOnClickListener {
+                    upTts(GSON.toJson(SelectItem("豆包", "doubao")))
+                }
+                ivEdit.setOnClickListener {
+                    // 初始化时从本地缓存读取数据（关键：打开页面就加载缓存）
+                    val cacheKey = "tts_doubao_cookie" // 自定义缓存key，用于唯一标识这个数据
+                    val cacheName = getSharedPrefValue(context, cacheKey, "") // 读取缓存，默认值"豆包"
+                    val inputEditText = EditText(context).apply {
+                        setText(cacheName) // 初始值为当前文本（缓存/默认值）
+                        hint="sessionid=你的sessionid; sid_guard=你的sid_guard; uid_tt=你的uid_tt"
+                        requestFocus()
+                        inputType = android.text.InputType.TYPE_CLASS_TEXT
+                        setPadding(
+                            dp2px(context, 16),
+                            dp2px(context, 12),
+                            dp2px(context, 16),
+                            dp2px(context, 12)
+                        )
+                    }
+
+                    AlertDialog.Builder(context)
+                        .setTitle("添加Cookie")
+                        .setView(inputEditText)
+                        .setPositiveButton("确定") { dialog, _ ->
+                            val inputText = inputEditText.text.toString().trim()
+                            saveToSharedPref(context, cacheKey, inputText)
+                            dialog.dismiss()
+                        }
+                        .setNegativeButton("取消") { dialog, _ ->
+                            dialog.dismiss()
+                        }
+                        .setCancelable(true)
+                        .show().also { dialog ->
+                            val imm = context?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                            imm.showSoftInput(inputEditText, InputMethodManager.SHOW_IMPLICIT)
+                        }
+                }
+            }
+        }
+
         tvFooterLeft.setText(R.string.book)
         tvFooterLeft.visible()
         tvFooterLeft.setOnClickListener {
@@ -288,6 +346,7 @@ class SpeakEngineDialog() : BaseDialogFragment(R.layout.dialog_recycler_view),
                     }
                 }
                 ivEdit.setOnClickListener {
+                    System.out.println("ivEdit>"+id);
                     val id = getItemByLayoutPosition(holder.layoutPosition)!!.id
                     showDialogFragment(HttpTtsEditDialog(id))
                 }
@@ -299,6 +358,33 @@ class SpeakEngineDialog() : BaseDialogFragment(R.layout.dialog_recycler_view),
             }
         }
 
+    }
+
+
+    // 辅助方法：dp转px
+    fun dp2px(context: Context, dp: Int): Int {
+        val density = context.resources.displayMetrics.density
+        return (dp * density + 0.5f).toInt()
+    }
+
+    // 核心方法1：保存数据到SharedPreferences
+    fun saveToSharedPref(context: Context?, key: String, value: String) {
+        if (context == null) {
+            return
+        }
+        // 获取SharedPreferences实例（名称自定义，模式用MODE_PRIVATE仅本应用可访问）
+        val sp = context.getSharedPreferences("TTS_CONFIG", Context.MODE_PRIVATE)
+        sp.edit().putString(key, value).apply() // apply()异步保存，不阻塞线程
+    }
+
+
+    // 核心方法2：从SharedPreferences读取数据
+    fun getSharedPrefValue(context: Context?, key: String, defaultValue: String): String {
+        if (context == null) {
+            return defaultValue
+        }
+        val sp = context.getSharedPreferences("TTS_CONFIG", Context.MODE_PRIVATE)
+        return sp.getString(key, defaultValue) ?: defaultValue // 防止null
     }
 
     interface CallBack {
