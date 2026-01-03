@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
@@ -64,9 +65,11 @@ class TTSDouBaoAloudService : BaseReadAloudService(), Player.Listener {
     private val audioCache = HashMap<String, ByteArray>()
     private val audioCacheList = arrayListOf<String>()
     private var previousMediaId = ""
-    private val requestTime = 0.035  // 请求时间
+    private val requestTime = 0.05  // 请求时间
     private val readTime = 0.2   // 每秒朗读字数,
-    private val makText = 700  // 每次朗读的基础字数 截取规则: 700 基础字数 + 找下一个句号
+    private var readTextSize = 301  // 起步文字数
+    private val maxText = 700  // 最大文字数
+
     private val cacheKey = "tts_doubao_cookie" // 自定义缓存key，用于唯一标识这个数据
     private var doubaoCookie = ""// 读取缓存，默认值"豆包"
     private val silentBytes: ByteArray by lazy {
@@ -74,7 +77,7 @@ class TTSDouBaoAloudService : BaseReadAloudService(), Player.Listener {
     }
 
     // 核心方法2：从SharedPreferences读取数据
-    private fun getSharedPrefValue(context: Context?, defaultValue: String=""): String {
+    private fun getSharedPrefValue(context: Context?, defaultValue: String = ""): String {
         if (context == null) {
             return defaultValue
         }
@@ -107,9 +110,6 @@ class TTSDouBaoAloudService : BaseReadAloudService(), Player.Listener {
             AppLog.putDebug("朗读列表为空")
             ReadBook.readAloud()
         } else {
-            contentList.forEachIndexed { _, content ->
-                Log.i(tag, "size===> ${content.length} $content ")
-            }
             downloadAndPlayAudios()
             super.play()
 
@@ -133,20 +133,29 @@ class TTSDouBaoAloudService : BaseReadAloudService(), Player.Listener {
 
 
     private fun downloadAndPlayAudios() {
-        preDownloadTask?.cancel()
+        if (doubaoCookie.isEmpty()) {
+            pauseReadAloud(true)
+            Toast.makeText(this, "兄弟没有Cookie让我很难办啊,先添加 cookie", Toast.LENGTH_LONG)
+                .show()
+            throw IllegalArgumentException("没找到cookie")
+        }
+
         downloadTask?.cancel()
         removeUnUseCache()
         exoPlayer.clearMediaItems()
         Log.d(tag, "clearMediaItems audioCache Size= ${audioCache.size}")
         Log.d(tag, "nowSpeak  $nowSpeak")
+
+
         downloadTask = execute {
             downloadTaskActiveLock.withLock {
                 var readText = ""
+                var delayTime = 0
+                Log.i(tag, "普通下载contentList size===> ${contentList.size}")
                 for (index in contentList.indices) {
                     ensureActive()
                     var content = contentList[index]
                     if (index < nowSpeak) {
-                        Log.d(tag, "continue nowSpeak=${nowSpeak}")
                         continue
                     }
                     if (paragraphStartPos > 0 && index == nowSpeak) {
@@ -155,14 +164,17 @@ class TTSDouBaoAloudService : BaseReadAloudService(), Player.Listener {
                     val fileName = md5SpeakFileName(content)
 
                     readText += content
-                    if (readText.length < makText) {
+                    if (index < contentList.lastIndex && readText.length < readTextSize) {
                         updateNextPos()
                         upPlayPos()
                         continue
                     }
                     val speakText = readText.replace(AppPattern.notReadAloudRegex, "")
                     if (!isCached(fileName)) {
-                        Log.i(tag, "无缓存开始下载===>  MD5:$fileName $speakText ")
+                        Log.i(
+                            tag,
+                            "无缓存开始下载===>字数 $readTextSize   MD5:$fileName $speakText "
+                        )
                         runCatching {
                             getSpeakStream(speakText, fileName)
                         }.onFailure {
@@ -174,9 +186,17 @@ class TTSDouBaoAloudService : BaseReadAloudService(), Player.Listener {
                             return@execute
                         }
                         Log.i(tag, "下载完毕===>  MD5:$fileName $speakText ")
+                        val textCount = readText.length
+                        // 每个字0.2 秒 0.03 是请求时间, 留足请求时间,保持连贯
+                        delayTime =
+                            (textCount * readTime).toInt() - (textCount * requestTime).toInt()
+
+                        Log.d(tag, "已添加音频[$fileName]，暂停 $delayTime 秒后继续下一个...")
+                        if (readTextSize < maxText) readTextSize += 200
                     } else {
-                        Log.i(tag, "有缓存跳过===> $speakText  MD5:$fileName")
+                        Log.i(tag, "有缓存跳过===> MD5:$fileName $speakText ")
                     }
+                    readText = ""
                     val mediaItem = MediaItem.Builder()
                         .setUri("memory://media/$fileName".toUri())
                         .setMediaId(fileName)
@@ -184,17 +204,14 @@ class TTSDouBaoAloudService : BaseReadAloudService(), Player.Listener {
                     launch(Main) {
                         exoPlayer.addMediaItem(mediaItem)
                     }
-                    // ========== 核心：添加后暂停  0.2 ==========
-                    val textCount = readText.length
 
-                    // 每个字0.2 秒 0.03 是请求时间, 留足请求时间,保持连贯
-                    val delayTime =
-                        (textCount * readTime).toInt() - (textCount * requestTime).toInt()
-                    readText = ""
-                    Log.d(tag, "已添加音频[$fileName]，暂停 $delayTime 秒后继续下一个...")
                     // 判断是否快要读完本章, 启动预下载
-                    if (contentList.lastIndex - index <= 2) {
-                        preDownloadAudios()
+                    if (contentList.lastIndex == index) {
+                        Log.d(tag, "即将读完, ${(delayTime / 2)}秒后启动预下载")
+                        lifecycleScope.launch {
+                            delay((delayTime / 4 * 1000).toLong())
+                            preDownloadAudios()
+                        }
                     }
                     delay((delayTime * 1000).toLong()) // 协程挂起秒（非阻塞，不卡线程）
                 }
@@ -209,36 +226,35 @@ class TTSDouBaoAloudService : BaseReadAloudService(), Player.Listener {
     private fun preDownloadAudios() {
         Log.i(tag, "准备预下载音频===> ${ReadBook.nextTextChapter}")
         val textChapter = ReadBook.nextTextChapter ?: return
-        val contentList =
+        val preContentList =
             textChapter.getNeedReadAloud(0, readAloudByPage, 0, 1).splitToSequence("\n")
                 .filter { it.isNotEmpty() }.toList()
+//        val preContentList = textChapter.getNeedReadAloud(0, readAloudByPage, 0)
+//            .split("\n")
+//            .filter { it.isNotEmpty() }
+        Log.i(tag, "开启预下载任务===> ${preContentList.size}")
         preDownloadTask?.cancel()
         preDownloadTask = execute {
             preDownloadTaskActiveLock.withLock {
                 var readText = ""
-                for (index in contentList.indices) {
+                for (index in preContentList.indices) {
                     coroutineContext.ensureActive()
-                    val content = contentList[index]
+                    val content = preContentList[index]
                     val fileName = md5SpeakFileName(content)
                     readText += content
-                    if (readText.length < makText) continue
-
+                    if (index < preContentList.lastIndex && readText.length < readTextSize) continue
                     val speakText = readText.replace(AppPattern.notReadAloudRegex, "")
-                    if (!isCached(fileName)) {
-                        runCatching {
-                            getSpeakStream(speakText, fileName)
-                            Log.i(tag, "pre预下载音频===> $speakText MD5:$fileName")
-                        }.onFailure {
-                            Log.e(tag, "preDownloadAudios runCatch onFailure")
-                        }
+                    Log.i(tag, "预下载字数:$readTextSize MD5:$fileName $speakText")
+                    Log.i(tag, "实际字数:${readText.length}, 重置 readTextSize = ${readText.length - 1} ")
+                    if (readText.length < readTextSize) readTextSize = readText.length - 1
+                    runCatching {
+                        getSpeakStream(speakText, fileName)
+                        Log.d(tag, "预下载 已添加音频 $fileName ，结束预下载  $speakText")
+                    }.onFailure {
+                        Log.e(tag, "预下载 runCatch onFailure")
                     }
-                    val textCount = readText.length
-                    // 每个字0.2 秒 0.05 是请求时间, 留足请求时间,保持连贯
-                    val delayTime =
-                        (textCount * readTime).toInt() - (textCount * requestTime).toInt()
-                    readText = ""
-                    Log.d(tag, "预下载_已添加音频[$fileName]，暂停 $delayTime 秒后继续下一个...")
-                    delay((delayTime * 1000).toLong()) // 协程挂起秒（非阻塞，不卡线程）
+                    Log.d(tag, "预下载完毕")
+                    preDownloadTask?.cancel()
                 }
             }
         }.onError {
@@ -251,6 +267,7 @@ class TTSDouBaoAloudService : BaseReadAloudService(), Player.Listener {
             cacheAudio(fileName, silentBytes)
             return "fail"
         }
+
         try {
             return withContext(Dispatchers.IO) {
                 val inputStream = doubaoFetch.genAudio(doubaoCookie, speakText)
