@@ -2,6 +2,7 @@ package io.legado.app.service
 
 import android.annotation.SuppressLint
 import android.app.PendingIntent
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.net.toUri
@@ -69,12 +70,22 @@ class TTSEdgeAloudService : BaseReadAloudService(), Player.Listener {
     private val audioCache = HashMap<String, ByteArray>()
     private val audioCacheList = arrayListOf<String>()
     private var previousMediaId = ""
+    private lateinit var ctx:Context
+
     private val silentBytes: ByteArray by lazy {
         resources.openRawResource(R.raw.silent_sound).readBytes()
     }
 
+    // 核心方法2：从SharedPreferences读取数据
+    private  fun getVoiceValue(defaultValue: String="晓晓@zh-CN-XiaoxiaoNeural"): String {
+        val sp = ctx.getSharedPreferences("TTS_CONFIG", Context.MODE_PRIVATE)
+        val cacheVoice =  sp.getString("tts_edge_voice", defaultValue) ?: defaultValue // 防止null
+        return cacheVoice.split("@")[1]
+    }
+
     override fun onCreate() {
         super.onCreate()
+        ctx = this
         exoPlayer.addListener(this)
     }
 
@@ -189,7 +200,8 @@ class TTSEdgeAloudService : BaseReadAloudService(), Player.Listener {
         }
         try {
             return withContext(Dispatchers.IO) {
-                val inputStream = edgeSpeakFetch.synthesizeText(speakText, speechRate)
+                val voice = getVoiceValue()
+                val inputStream = edgeSpeakFetch.synthesizeText(speakText, speechRate,voice)
                 cacheAudio(fileName, inputStream)
                 "success"
             }

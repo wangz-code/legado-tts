@@ -7,8 +7,11 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.RadioButton
+import android.widget.Spinner
 import android.widget.Toast
 import androidx.appcompat.widget.Toolbar
 import androidx.fragment.app.viewModels
@@ -125,22 +128,7 @@ class SpeakEngineDialog() : BaseDialogFragment(R.layout.dialog_recycler_view),
             }
 
         }
-        adapter.addHeaderView {
-            ItemHttpTtsBinding.inflate(layoutInflater, recyclerView, false).apply {
-                sysTtsViews.add(cbName)
-                ivEdit.gone()
-                ivMenuDelete.gone()
-                labelSys.visible()
-                cbName.text = "Edge大声朗读"
-                cbName.tag = "edgeinner"
-                cbName.isChecked = GSON.fromJsonObject<SelectItem<String>>(ttsEngine)
-                    .getOrNull()?.value == cbName.tag
-                cbName.setOnClickListener {
-                    upTts(GSON.toJson(SelectItem("Edge大声朗读", "edgeinner")))
-                }
-            }
 
-        }
 
         viewModel.sysEngines.forEach { engine ->
             System.out.println("engine.label:"+engine.label)
@@ -159,6 +147,82 @@ class SpeakEngineDialog() : BaseDialogFragment(R.layout.dialog_recycler_view),
                     }
                 }
             }
+        }
+        adapter.addHeaderView {
+            ItemHttpTtsBinding.inflate(layoutInflater, recyclerView, false).apply {
+                sysTtsViews.add(cbName)
+                ivEdit.visible()
+                ivMenuDelete.gone()
+                labelSys.gone()
+                cbName.text = "Edge大声朗读"
+                cbName.tag = "edgeinner"
+                cbName.isChecked = GSON.fromJsonObject<SelectItem<String>>(ttsEngine)
+                    .getOrNull()?.value == cbName.tag
+                cbName.setOnClickListener {
+                    upTts(GSON.toJson(SelectItem("Edge大声朗读", "edgeinner")))
+                }
+                // 你的点击事件逻辑
+                ivEdit.setOnClickListener {
+                    val cacheKey = "tts_edge_voice"
+                    val cacheValue = getSharedPrefValue(context, cacheKey, "")
+                    var voiceOptions = listOf(
+                        "晓晓@zh-CN-XiaoxiaoNeural",
+                        "小艺@zh-CN-XiaoyiNeural",
+                        "云健@zh-CN-YunjianNeural",
+                        "云希@zh-CN-YunxiNeural",
+                        "云夏@zh-CN-YunxiaNeural",
+                        "云扬@zh-CN-YunyangNeural",
+                        "小北（辽宁方言）@zh-CN-liaoning-XiaobeiNeural",
+                        "小妮（陕西方言）@zh-CN-shaanxi-XiaoniNeural"
+                    )
+                    // 1. 创建Spinner控件
+                    val spinner = Spinner(context).apply {
+                        layoutParams = LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                        )
+                        setPadding(
+                            dp2px(context, 16),
+                            dp2px(context, 12),
+                            dp2px(context, 16),
+                            dp2px(context, 12)
+                        )
+
+                        // 2. 设置Spinner适配器
+                        adapter = ArrayAdapter(
+                            context,
+                            android.R.layout.simple_spinner_item,
+                            voiceOptions
+                        ).apply {
+                            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+                        }
+
+                        // 3. 选中缓存的选项（如果缓存值在列表中）
+                        val cacheIndex = voiceOptions.indexOf(cacheValue)
+                        if (cacheIndex != -1) {
+                            setSelection(cacheIndex)
+                        }
+                    }
+
+                    // 4. 构建弹窗并显示
+                    AlertDialog.Builder(context)
+                        .setMessage("保存嗓音后需变更下语速才会使用新嗓音或者是等待读完缓存段落")
+                        .setView(spinner)
+                        .setPositiveButton("保存") { dialog, _ ->
+                            // 获取选中的选项并保存到缓存
+                            val selectedValue = spinner.selectedItem.toString()
+                            saveToSharedPref(context, cacheKey, selectedValue)
+                            Toast.makeText(context, "已选择：${selectedValue.take(20)}...", Toast.LENGTH_SHORT).show()
+                            dialog.dismiss()
+                        }
+                        .setNegativeButton("取消") { dialog, _ ->
+                            dialog.dismiss()
+                        }
+                        .setCancelable(true)
+                        .show()
+                }
+            }
+
         }
         adapter.addHeaderView {
             ItemHttpTtsBinding.inflate(layoutInflater, recyclerView, false).apply {
