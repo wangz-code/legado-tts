@@ -204,6 +204,7 @@ class TTSDouBaoAloudService : BaseReadAloudService(), Player.Listener {
                             getSpeakStream(speakText, fileName)
                         }.onFailure {
                             Log.e(tag, "downloadAndPlayAudios runCatch onFailure")
+                            AppLog.put("朗读下载出错\n${it.localizedMessage}", it, true)
                             when (it) {
                                 is CancellationException -> Unit
                                 else -> pauseReadAloud()
@@ -292,6 +293,7 @@ class TTSDouBaoAloudService : BaseReadAloudService(), Player.Listener {
                         Log.d(tag, "预下载 已添加音频 $fileName ，结束预下载  $speakText")
                     }.onFailure {
                         Log.e(tag, "预下载 runCatch onFailure")
+                        AppLog.put("预下载下载出错\n${it.localizedMessage}", it, true)
                     }
                     Log.d(tag, "预下载完毕")
                     preDownloadTask?.cancel()
@@ -308,14 +310,22 @@ class TTSDouBaoAloudService : BaseReadAloudService(), Player.Listener {
             return "fail"
         }
 
+        val audioFailureCallback: DouBaoFetch.AudioGenFailureCallback = object : DouBaoFetch.AudioGenFailureCallback {
+            override fun onFailure(error: Throwable, message: String) {
+                Log.e(tag, "外部感知到音频生成失败：$message", error)
+                pauseReadAloud()
+            }
+        }
+
         try {
+
             return withContext(Dispatchers.IO) {
-                val inputStream = doubaoFetch.genAudio(doubaoCookie, speakText)
+                val inputStream = doubaoFetch.genAudio(audioFailureCallback, doubaoCookie, speakText)
                 cacheAudio(fileName, inputStream)
                 "success"
             }
         } catch (e: Exception) {
-            Log.i(tag, "doubaoFetch失败: $e")
+            Log.i(tag, "edgeSpeakFetch失败: $e")
             cacheAudio(fileName, silentBytes)
         }
         return "fail"

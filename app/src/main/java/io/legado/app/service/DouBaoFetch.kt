@@ -129,6 +129,12 @@ class DouBaoFetch {
         return WS_URL + "?" + params.toString()
     }
 
+
+
+    // 1. 简化回调接口：仅保留onFailure方法
+    interface AudioGenFailureCallback {
+        fun onFailure(error: Throwable, message: String)
+    }
     /**
      * 生成音频，返回音频输入流
      * @param cookie 豆包Cookie
@@ -140,13 +146,14 @@ class DouBaoFetch {
      * @return 音频输入流
      */
     fun genAudio(
+        failureCallback: AudioGenFailureCallback, // 仅失败回调
         cookie: String,
         text: String,
         voice: String = DEFAULT_VOICE,
         rate: Int = DEFAULT_RATE,
         pitch: Int = DEFAULT_PITCH,
         format: String = DEFAULT_FORMAT
-    ): InputStream {
+    ): InputStream{
 
         val cleanedText = removeSpecialCharacters(text)
         // 重新初始化音频流
@@ -156,6 +163,7 @@ class DouBaoFetch {
         // 构建WebSocket URL
         val wsUrl = buildWsUrl(voice, format, rate, pitch)
         Log.d(TAG, "WebSocket URL: $wsUrl")
+
 
         try {
             // 构建请求
@@ -267,14 +275,15 @@ class DouBaoFetch {
                     } catch (e: IOException) {
                         Log.e(TAG, "关闭音频输出流失败", e)
                     }
+                    // 核心：触发WebSocket失败回调
+                    failureCallback.onFailure(t, "WebSocket连接失败")
                 }
             }
-
-
             // 建立WebSocket连接
             client.newWebSocket(request, listener)
         } catch (e: Exception) {
             Log.e(TAG, "生成音频失败", e)
+            failureCallback.onFailure(e, "生成音频失败")
         }
         return audioInputStream
     }
@@ -284,12 +293,8 @@ class DouBaoFetch {
      */
     fun release() {
         try {
-            if (audioOutputStream != null) {
-                audioOutputStream!!.close()
-            }
-            if (audioInputStream != null) {
-                audioInputStream!!.close()
-            }
+            audioOutputStream.close()
+            audioInputStream.close()
         } catch (e: IOException) {
             Log.e(TAG, "释放资源失败", e)
         }
