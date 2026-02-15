@@ -123,6 +123,7 @@ abstract class BaseReadAloudService : BaseService(),
     private var needResumeOnAudioFocusGain = false
     private var needResumeOnCallStateIdle = false
     private var registeredPhoneStateListener = false
+    private var manualNextChapter = false
     private var dsJob: Job? = null
     private var upNotificationJob: Coroutine<*>? = null
     private var cover: Bitmap =
@@ -220,7 +221,10 @@ abstract class BaseReadAloudService : BaseService(),
             IntentAction.prevParagraph -> prevP()
             IntentAction.nextParagraph -> nextP()
             IntentAction.prev -> prevChapter()
-            IntentAction.next -> nextChapter()
+            IntentAction.next -> {
+                manualNextChapter = true
+                nextChapter()
+            }
             IntentAction.addTimer -> addTimer()
             IntentAction.setTimer -> setTimer(intent.getIntExtra("minute", 0))
             IntentAction.stop -> stopSelf()
@@ -477,6 +481,7 @@ abstract class BaseReadAloudService : BaseService(),
 
                 override fun onSkipToNext() {
                     if (getPrefBoolean("mediaButtonPerNext", false)) {
+                        manualNextChapter = true
                         nextChapter()
                     } else {
                         nextP()
@@ -682,12 +687,25 @@ abstract class BaseReadAloudService : BaseService(),
     }
 
     open fun nextChapter() {
+        if (!manualNextChapter && getPrefBoolean(PreferKey.readAloudLoopChapter, false)) {
+            manualNextChapter = false
+            loopCurrentChapter()
+            return
+        }
+        manualNextChapter = false
         ReadBook.upReadTime()
         AppLog.putDebug("${ReadBook.curTextChapter?.chapter?.title} 朗读结束跳转下一章并朗读")
         play()
         if (!ReadBook.moveToNextChapter(true)) {
             stopSelf()
         }
+    }
+
+    private fun loopCurrentChapter() {
+        ReadBook.upReadTime()
+        AppLog.putDebug("${ReadBook.curTextChapter?.chapter?.title} 朗读结束，循环当前章节")
+        playStop()
+        ReadBook.setPageIndex(0)
     }
 
     private fun initPhoneStateListener() {

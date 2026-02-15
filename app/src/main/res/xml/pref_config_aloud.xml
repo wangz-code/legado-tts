@@ -50,6 +50,13 @@
 
         <io.legado.app.lib.prefs.SwitchPreference
             android:defaultValue="false"
+            android:title="@string/read_aloud_loop_chapter"
+            android:summary="@string/read_aloud_loop_chapter_summary"
+            android:key="readAloudLoopChapter"
+            app:iconSpaceReserved="false" />
+
+        <io.legado.app.lib.prefs.SwitchPreference
+            android:defaultValue="false"
             android:title="@string/stream_read_aloud_audio"
             android:summary="@string/stream_read_aloud_audio_summary"
             android:key="streamReadAloudAudio"
