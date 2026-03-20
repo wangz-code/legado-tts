@@ -10,12 +10,9 @@ Legado is a free and open source novel reader for Android.
 ## legado-tts/阅读内置EdgeTTS 微软大声朗读
 - app基于legado https://github.com/gedoor/legado ✅
 - Edgetts基于rany2/edge-tts https://github.com/rany2/edge-tts ✅
-- 豆包tts基于 https://github.com/callmerio/doubao-tts  ✅( ~~辣鸡豆包,调用三四次就被拦截, 格局都没有 猝~~ 有格局但不多)
+- 豆包tts基于 https://github.com/callmerio/doubao-tts  ✅( 有格局但不多)
 
 ### 豆包TTS 测试
-豆包调用频繁极其容易被拦截等个20分钟左右就能恢复, 频繁调用会被拦截, 字数长一点不会拦截, 比如单次长内容约1000字每次,正常语速可以读个 7 分钟,  每次等个5分钟左右调用一次, 能用好多次, 经过手工测试了一两个小时没被拦截
-如果准备两个key 进行切换 1A,2B 3A,4B 这样可以大大降低拦截概率, 达到基本能用, 等手头上的事情忙完了在着手尝试
-
 - 2025-01-01新增豆包TTS,  需要先添加 cookie 首次请求比较慢耐心等待, 其次不支持调语速,避免请求频繁拦截, 朗读的进度和语音可能有错位
 ```bash
   # cookie获取参考   
@@ -35,7 +32,7 @@ Legado is a free and open source novel reader for Android.
 - 自己确实有这个需求,晚上不听几章睡不着 装了阅读再安装TTS有些多余,现有的TTS核心仍是rany2/edge-tts
 
 ### 书源
-- 要么去喵公子导入, 要么本地, 不喜欢书源搜出来都是一对垃圾, 除非本地实在找不到才会用
+- 要么去喵公子导入, 要么本地, 不喜欢书源搜出来都是一堆垃圾, 除非本地实在找不到才会用
 - 本地电子书推荐: https://github.com/BlankRain/ebooks
 
 ### 主要修改
